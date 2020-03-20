@@ -327,16 +327,13 @@ app.on('ready', () => {
 
     // Set the electron version for both the dev and the production mode. (https://github.com/eclipse-theia/theia/issues/3254)
     // Otherwise, the forked backend processes will not know that they're serving the electron frontend.
-    const { versions } = process;
-    // @ts-ignore
-    if (versions && typeof versions.electron !== 'undefined') {
-        // @ts-ignore
-        process.env.THEIA_ELECTRON_VERSION = versions.electron;
-    }
+    // The forked backend should patch its \`process.versions.electron\` with this value if it is missing.
+    process.env.THEIA_ELECTRON_VERSION = process.versions.electron;
 
     const mainPath = join(__dirname, '..', 'backend', 'main');
-    // We need to distinguish between bundled application and development mode when starting the clusters.
-    // See: https://github.com/electron/electron/issues/6337#issuecomment-230183287
+    // We spawn a separate process for the backend for Express to not run in the Electron main process.
+    // See: https://github.com/eclipse-theia/theia/pull/7361#issuecomment-601272212
+    // But when in development mode, we will not spawn a new process, to ease with debugging (devMode).
     if (devMode) {
         process.env[ElectronSecurityToken] = JSON.stringify(electronSecurityToken);
         require(mainPath).then(address => {
